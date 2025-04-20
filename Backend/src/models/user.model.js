@@ -30,6 +30,7 @@ const userSchema = new mongoose.Schema(
         },
         coverimage:{
             type:String,
+            default: ""
         },
         password:{
             type:String,

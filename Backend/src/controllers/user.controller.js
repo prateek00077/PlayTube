@@ -18,18 +18,19 @@ const registerUser = asyncHandler(async (req, res)=>{
         9. return response
     */
    const {username, fullname, email, password} = req.body;
+   //console.log(req.body);
 
    if(!username.trim()){
-        return new ApiError(400, "Username is required")
+        throw new ApiError(400, "Username is required")
    }
    if(!fullname.trim()){
-        return new ApiError(400, "Fullname is required")
+        throw new ApiError(400, "Fullname is required")
    }
     if(!email.trim()){
-        return new ApiError(400, "Email is required")
+        throw new ApiError(400, "Email is required")
     }
     if(!password.trim()){
-        return new ApiError(400, "Password is required")
+        throw new ApiError(400, "Password is required")
     }
 
     // Check if user already exists
@@ -37,23 +38,24 @@ const registerUser = asyncHandler(async (req, res)=>{
     const userExists = await User.findOne({$or : [{username},{email}]});
 
     if(userExists){
-        return new ApiError(409, "This username or email already exists")
+        throw new ApiError(409, "This username or email already exists")
     }
 
     // Check for images
-    const avatarLocalPath = req.files?.avatar[0]?.path;
-    const coverLocalPath = req.files?.cover[0]?.path;
+    const avatarLocalPath = req.files?.avatar?.[0]?.path;
+    const coverLocalPath = req.files?.coverimage?.[0]?.path;
+    
 
     if(!avatarLocalPath){
-        return new ApiError(400, "Avatar is required")
+        throw new ApiError(400, "Avatar is required")
     }
 
     // Uploading images to cloudinary
     const avatar = await uploadOnCloudinary(avatarLocalPath);
-    const cover = await uploadOnCloudinary(coverLocalPath);
+    const coverimage = await uploadOnCloudinary(coverLocalPath);
 
     if(!avatar){
-        return new ApiError(500, "Error uploading avatar to cloudinary")
+        throw new ApiError(500, "Error uploading avatar to cloudinary")
     }
 
     // Creating user
@@ -63,7 +65,7 @@ const registerUser = asyncHandler(async (req, res)=>{
         email,
         password,
         avatar: avatar.url,
-        cover: cover?.url
+        coverimage: coverimage?.url
     })
 
     const createdUser = await User.findById(user._id).select(
@@ -71,7 +73,7 @@ const registerUser = asyncHandler(async (req, res)=>{
     )
 
     if(!createdUser){
-        return new ApiError(500, "Something went wrong, Error while registering the user")
+        throw new ApiError(500, "Something went wrong, Error while registering the user")
     }
 
     return res.status(201).json(
