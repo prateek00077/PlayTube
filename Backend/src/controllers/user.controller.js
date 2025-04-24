@@ -81,4 +81,96 @@ const registerUser = asyncHandler(async (req, res)=>{
     )
 });
 
-export {registerUser};
+const loginUser = asyncHandler(async (req, res)=>{
+    // Steps to login the user: 
+    /*
+        1. We will get the email or username and password from frontend
+        2. We will check fields are empty or not (validate)
+        3. We will check if this user is already registered or not
+        4. If yes, then we will check if password is matched
+        5. If yes, then we will generate the access token and refresh token
+        6. We will send the access token and refresh token to the user in cookies
+     */
+
+    const {username,email, password} = req.body;
+
+    if(!username.trim() && !email.trim()){
+        throw new ApiError(400,'Username or email is required');
+    }
+
+    if(!password.trim()) throw new ApiError(400, 'Password is required');
+
+    const user = await User.findOne({$or : [{username},{email}]});
+
+    if(!user) throw ApiError(400, "user does not exist");
+
+    const isPasswordValid = await user.isPasswordCorrect(password);
+    if(!isPasswordValid) throw new ApiError(400, 'Username or password is incorrect');
+
+    try{
+        const AccessToken = await user.generateAccessToken();
+        const RefreshToken = await user.generateRefreshToken();
+
+        user.refreshToken = RefreshToken;
+        await user.save({validateBeforeSave : false});
+
+        const options = {
+            httpOnly : true,
+            secure : true,
+        }
+
+        return res.status(200)
+        .cookie("accessToken", AccessToken, options)
+        .cookie("refreshToken", RefreshToken, options)
+        .json(
+            new ApiResponse(
+                200,
+                {
+                    user : user, AccessToken, RefreshToken
+                },
+                "User logged in successfully"
+            )
+        )
+    }
+    catch{
+        throw new ApiError(500, "Something went wrong while generating tokens");
+    }
+});
+
+const logoutUser = asyncHandler(async (req, res)=>{
+    // steps
+    /*
+    1. get the data of user
+    2. set the refreshtoken to null
+    3. clear the cookies
+     */
+
+    User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $set:{
+                refreshToken : undefined
+            }
+        },
+        {
+            new : true
+        }
+    )
+
+    const options = {
+        httpOnly : true,
+        secure : true,
+    }
+
+    return res.status(200)
+    .clearCookie("AccessToken",options)
+    .clearCookie("RefreshToken",options)
+    .json(
+        new ApiResponse(
+            200,
+            {},
+            "user logged out successfully"
+        )
+    )
+})
+export {registerUser, loginUser , logoutUser};
