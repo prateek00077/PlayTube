@@ -21,7 +21,7 @@ userRouter.route('/register').post(
 userRouter.route('/login').post(loginUser)
 userRouter.route('/logout').post(verifyJWT, logoutUser)
 userRouter.route('/refreshToken').post(refreshAccessToken)
-userRouter.route('/cover-image').patch(verifyJWT,upload.single("/coverimage"), updateCoverImage)
+userRouter.route('/cover-image').patch(verifyJWT,upload.single("coverimage"), updateCoverImage)
 userRouter.route('/change-password').post(verifyJWT,changePassword)
 userRouter.route('/current-user').get(verifyJWT,getCurrentUser)
 userRouter.route('/update-details').post(verifyJWT,updateDetails)
